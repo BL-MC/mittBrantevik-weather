@@ -1,22 +1,27 @@
-version: "3.4"
-  
+version: "3.7"
 services:
-  web:
-    image: blinkylite/empty-node-red:amd64
-    container_name: empty-node-red-01
+  mittbrantevik-weather:
+    image: blinkylite/mittbrantevik-weather:${DOCKER_TAG}
+    container_name: mittbrantevik-weather
+    restart: unless-stopped
     ports:
-      - "60427:60427"
-    volumes:
-      - empty-node-red-01:/data
+      - "60440:60440"
     environment:
-      - NODEREDPORT=60427
-      - ENABLE_NODERED_EDITOR=1
-      - NODE_RED_TITLE=empty-node-red-01
+      - BOX=${BOX}
+      - MONGODBIP=mongodb://admin:${BLINKYLITE_PASSWORD}@blinky-mongo:27017/blinky-lite?retryWrites=true&serverSelectionTimeoutMS=5000&connectTimeoutMS=10000&authSource=admin&authMechanism=SCRAM-SHA-256
+      - AIR_DEV_TYPE=lansitecTH
+      - AIR_DEV_NAME=e9
+      - WATER_DEV_TYPE=lora-temp
+      - WATER_DEV_NAME=BLMC0002
+      - IMG_URL=https://mittbrantevik.se/extra-img/brantevik_pics/
+      - NO_IMG=30
+      - IPREFWEB=https://www.blinky-lite.se
+      - NODEREDPORT=60440
+      - ENABLE_NODERED_EDITOR=0
+      - NODE_RED_TITLE=extra-img
       - HTMLSTATICDIR=/data/html-static/
-volumes:
-  empty-node-red-01:
-    driver: local  
 networks:
   default:
     name: tunnel
     external: true
+
