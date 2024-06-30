@@ -8,6 +8,28 @@
         "env": []
     },
     {
+        "id": "05600d79bca56155",
+        "type": "subflow",
+        "name": "Widget Html",
+        "info": "",
+        "category": "",
+        "in": [
+            {
+                "x": 40,
+                "y": 80,
+                "wires": [
+                    {
+                        "id": "9ea378070fab339c"
+                    }
+                ]
+            }
+        ],
+        "out": [],
+        "env": [],
+        "meta": {},
+        "color": "#DDAA99"
+    },
+    {
         "id": "6ad7c930.1a06b8",
         "type": "ui_base",
         "theme": {
@@ -101,5 +123,990 @@
                 "py": 0
             }
         }
+    },
+    {
+        "id": "9cd5ff5e.caf86",
+        "type": "mongodb3",
+        "uri": "$(MONGODBIP)",
+        "name": "blinky-lite",
+        "options": "",
+        "parallelism": "-1"
+    },
+    {
+        "id": "e865fc91.88a2a",
+        "type": "websocket-listener",
+        "path": "/brantevik-weather-widget/websocket",
+        "wholemsg": "false"
+    },
+    {
+        "id": "4fbbe9375c5eb4a7",
+        "type": "websocket-listener",
+        "path": "/w/websocket",
+        "wholemsg": "false"
+    },
+    {
+        "id": "a06063dc84517dde",
+        "type": "template",
+        "z": "05600d79bca56155",
+        "name": "HTML",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n{{{payload.head}}}\n  </head>\n  <body>\n{{{payload.body}}}\n{{{payload.foot}}}\n  </body>\n</html>",
+        "output": "str",
+        "x": 1130,
+        "y": 80,
+        "wires": [
+            [
+                "def2e322db97c798"
+            ]
+        ]
+    },
+    {
+        "id": "2da67b5c9122dba3",
+        "type": "template",
+        "z": "05600d79bca56155",
+        "name": "Foot",
+        "field": "payload.foot",
+        "fieldType": "msg",
+        "format": "html",
+        "syntax": "mustache",
+        "template": "    <script src=\"/scripts/popper.js\"></script>\n    <script src=\"/scripts/bootstrap.js\"></script>",
+        "output": "str",
+        "x": 670,
+        "y": 80,
+        "wires": [
+            [
+                "9149b100cb07c02e"
+            ]
+        ]
+    },
+    {
+        "id": "b11ec912440bd7dd",
+        "type": "template",
+        "z": "05600d79bca56155",
+        "name": "Head",
+        "field": "payload.head",
+        "fieldType": "msg",
+        "format": "html",
+        "syntax": "mustache",
+        "template": "    <meta charset=\"UTF-8\">\n    <link rel=\"icon\" href=\"/img/favicon.ico?v=4\" type=\"image/x-icon\"/>\n    <title>{{payload.title}}</title>\n    <link rel=\"stylesheet\" href=\"/css/bootstrap.css\"/>\n    <link rel=\"stylesheet\" href=\"/jquery/jquery-ui.css\"/>\n    <link rel=\"stylesheet\" href=\"/jquery/jquery-ui-timepicker-addon.css\"/>\n    <script src=\"/jquery/jquery.js\"></script>\n    <script src=\"/jquery/jquery-ui.js\"></script>\n    <script src=\"/jquery/jquery-ui-timepicker-addon.js\"></script>\n    <script src=\"/scripts/plotly-latest.min.js\"></script>\n    <script src=\"/scripts/pako.min.js\"></script>\n{{{payload.extraScripts}}}\n    <style>\n{{{payload.css}}}\n    </style>\n    <style>\n{{{payload.extraCss}}}\n    </style>\n    <script>\n{{{payload.utilityScripts}}}\n    </script>\n    <script>\n{{{payload.javascript}}}\n    </script>",
+        "output": "str",
+        "x": 550,
+        "y": 80,
+        "wires": [
+            [
+                "2da67b5c9122dba3"
+            ]
+        ]
+    },
+    {
+        "id": "def2e322db97c798",
+        "type": "http response",
+        "z": "05600d79bca56155",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1250,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "2262cb438d3c32b7",
+        "type": "template",
+        "z": "05600d79bca56155",
+        "name": "Utility Scripts",
+        "field": "payload.utilityScripts",
+        "fieldType": "msg",
+        "format": "javascript",
+        "syntax": "mustache",
+        "template": "        var remoteApp = true;\n        var ws;\n        var userID = -1;\n        var useWebSocketsFlag = true;\n        var project = '{{{payload.project}}}';\n        var heartBeatImage = false;\n        var wsUri = '';\n        var wsConnected = false;\n\n        function setRemoteApp(remoteAppSet)\n        {\n            remoteApp  = remoteAppSet;\n        }\n        function webSocketConnected()\n        {\n            return wsConnected;\n        }\n        function useWebSockets(webSocketsFlag)\n        {\n            useWebSocketsFlag = webSocketsFlag;\n        }\n        function wsConnectC()\n        {\n            if (!useWebSocketsFlag)\n            {\n                return;\n            }\n            if (wsUri.length < 1)\n            {\n                var uri = window.location.href.split('://');\n                var wslead = 'ws://';\n                if (uri[0] == 'https') wslead = 'wss://';\n                var questionLocation = uri[1].indexOf('?');\n                if (questionLocation >= 0)\n                {\n                    uri[1] = uri[1].substring(0,questionLocation);\n//                    console.log(uri[1]);\n                }\n                if (uri[1].indexOf('/') < (uri[1].length - 1))\n                {\n                    wsUri = wslead + uri[1] + '/websocket';\n                }\n                else\n                {\n                    wsUri = wslead + uri[1] + 'websocket';\n                }\n            }\n            ws = new WebSocket(wsUri);\n            ws.onmessage = function(event)\n            {\n                onWebSocketMessage(JSON.parse(event.data));\n        \n            };\n            ws.onopen = function()\n            {\n                console.log(\"Websocket connected\");\n                wsConnected = true;\n                $('#webSocketStatus').html('Open');\n                $('#reOpenWebSocketButton').hide();\n                $('#webSocketStatusRow').css('padding-bottom','0px');\n                $('#webSocketStatusCard').hide();\n                onWebSocketOpen();\n            };\n            ws.onclose = function()\n            {\n                console.log(\"Websocket closed\");\n                wsConnected = false;\n                $('#webSocketStatus').html('Closed');\n                $('#reOpenWebSocketButton').show();\n                $('#webSocketStatusCard').show();\n                $('#webSocketStatusRow').css('padding-bottom','25px');\n                onWebSocketClose();\n                wsConnectC();\n            };\n        }\n\n        function getRandomInt(max)\n        {\n          return Math.floor(Math.random() * Math.floor(max));\n        }\n        $( document ).ready(function()\n        {\n            userID  = {{{payload.userID}}};\n            if (!useWebSocketsFlag)\n            {\n                $('#webSocketStatusRow').css('padding-bottom','0px');\n                $('#webSocketStatusCard').hide();\n            }\n            wsConnectC();\n            onDocumentReady();\n       });\n        $( function() \n        {\n            $( \"#acknowledgeDialog\" ).dialog(\n                {\n                    width:    500,\n                    autoOpen: false,\n                    buttons:\n                    [\n                        {\n                            text: \"Ok\",\n                            click: function() { $( this ).dialog( \"close\" );},\n                            showText: false\n                        },\n                   ]\n                });\n            $( \"#messageDialog\" ).dialog(\n                {\n                    width:    500,\n                    autoOpen: false,\n                    buttons:[]\n                });\n        } );\n        function optionDialog(headerText, title, text, buttonTexts, buttonFunctions)\n        {\n            var buttonDefinitions = [];\n            for (var ii = 0; ii < buttonTexts.length; ++ii)\n            {\n                buttonDefinitions[ii] = \n                    {\n                        text: buttonTexts[ii],\n                        click: buttonFunctions[ii],\n                        showText: false\n                    };\n            }\n            $( \"#optionDialog\" ).dialog( \"option\", \"title\", headerText );   \n            $( \"#optionDialog\" ).dialog( \"option\", \"buttons\", buttonDefinitions);\n            $( \"#optionDialogTitle\" ).html(title);\n            $( \"#optionDialogText\" ).html(text);\n            $( \"#optionDialog\" ).dialog( \"open\" );\n        }\n        $( function() \n        {\n            $( \"#optionDialog\" ).dialog(\n                {\n                    width:    500,\n                    autoOpen: false,\n                    buttons:\n                    [\n                        {\n                            text: \"Ok\",\n                            click: function() {$( this ).dialog( \"close\" );},\n                            showText: false\n                        },\n                        {\n                            text: \"Cancel\",\n                            click: function() {$( this ).dialog( \"close\" );},\n                            showText: false\n                        },\n                   ]\n                });\n        } );\n        function acknowledgeDialog(headerText, title, text)\n        {\n            $( \"#acknowledgeDialog\" ).dialog( \"option\", \"title\", headerText );    \n            $( \"#acknowledgeDialogTitle\" ).html(title);\n            $( \"#acknowledgeDialogText\" ).html(text);\n            $( \"#acknowledgeDialog\" ).dialog( \"open\" );\n        }\n        function messageDialog(headerText, title, text)\n        {\n            $( \"#messageDialog\" ).dialog( \"option\", \"title\", headerText );    \n            $( \"#messageDialogTitle\" ).html(title);\n            $( \"#messageDialogText\" ).html(text);\n            $( \"#messageDialog\" ).dialog( \"open\" );\n        }\n        function heartbeat()\n        {\n            heartBeatImage = !heartBeatImage;\n            var heartBeatImageSrc = '/img/heartRed.png';\n            if (heartBeatImage) heartBeatImageSrc = '/img/heartPink.png';\n            $('#heartBeatID').attr('src',heartBeatImageSrc);\n        }\n        function getCookie(extension)\n        {\n            var cookies = document.cookie.split(';');\n            var token = null;\n            var cookieName = project + extension + \"=\";\n            for (var icookie = 0; icookie < cookies.length; ++icookie)\n            {\n                var index = cookies[icookie].indexOf(cookieName);\n                if (index >= 0)\n                {\n                    token = cookies[icookie].substring(index + cookieName.length);\n                }\n            }\n            return token;\n        }\n        function sendActionMsg(topic,role,actionMsg)\n        {\n            var roleToken = \"\";\n            if (remoteApp) roleToken  = getCookie('Role');\n            if (roleToken == null)\n            {\n                location.reload();\n                return;\n            }\n            var webSocketMsg = \n            {\n                topic     : topic,\n                payload   : actionMsg,\n                userID    : userID,\n                token     : getCookie('Role'),\n                role      : role\n            };\n            ws.send(JSON.stringify(webSocketMsg));\n        }\n",
+        "output": "str",
+        "x": 410,
+        "y": 80,
+        "wires": [
+            [
+                "b11ec912440bd7dd"
+            ]
+        ]
+    },
+    {
+        "id": "9ea378070fab339c",
+        "type": "function",
+        "z": "05600d79bca56155",
+        "name": "Get project name and userID",
+        "func": "function getRandomInt(max)\n{\n  return Math.floor(Math.random() * Math.floor(max));\n}\nmsg.payload['project'] = env.get('BOX')\nmsg.payload['userID'] = getRandomInt(32768);\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 200,
+        "y": 80,
+        "wires": [
+            [
+                "2262cb438d3c32b7"
+            ]
+        ]
+    },
+    {
+        "id": "9149b100cb07c02e",
+        "type": "function",
+        "z": "05600d79bca56155",
+        "name": "IP filter",
+        "func": "var ipfilter = [\n    \"127.0.0.16\"];\nvar ipAddress = ( msg.req.headers['x-forwarded-for'] || '').split(',').pop() || \n          msg.req.connection.remoteAddress || \n          msg.req.socket.remoteAddress || \n          msg.req.connection.socket.remoteAddress;\nif (ipAddress==undefined) return null;\nvar ipAddressSplit = ipAddress.split(\".\");\nfor (var ii =  0; ii < ipfilter.length; ++ii)\n{\n    var ipfilterSplit = ipfilter[ii].split(\".\");\n    if (ipAddress == ipfilter[ii])\n    { \n        return null;\n    }\n    if (ipfilterSplit[2] == '*')\n    {\n        if ((ipfilterSplit[0] == ipAddressSplit[0]) && (ipfilterSplit[1] == ipAddressSplit[1]))\n        {\n            return null;\n        }\n    }\n}\n\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 890,
+        "y": 80,
+        "wires": [
+            [
+                "b36946ac4c2ee108",
+                "a06063dc84517dde"
+            ]
+        ]
+    },
+    {
+        "id": "12c43c257d807f6b",
+        "type": "function",
+        "z": "05600d79bca56155",
+        "name": "parseIpRequest",
+        "func": "var data = msg.payload.data.geo;\ndata['url'] = msg.extraInfo.url;\ndata['userID'] = msg.extraInfo.userID;\ndata['timeStamp'] = new Date().getTime();\ndata['user'] = msg.extraInfo.user;\nreturn {topic:'ipData', payload:data};\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 920,
+        "y": 200,
+        "wires": [
+            [
+                "2e2f8159e34f123b"
+            ]
+        ]
+    },
+    {
+        "id": "ee1e0e6eb6e3fefd",
+        "type": "http request",
+        "z": "05600d79bca56155",
+        "name": "",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "https://tools.keycdn.com/geo.json?host={{{payload.ipAddress}}}",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "basic",
+        "x": 910,
+        "y": 160,
+        "wires": [
+            [
+                "12c43c257d807f6b"
+            ]
+        ]
+    },
+    {
+        "id": "b36946ac4c2ee108",
+        "type": "function",
+        "z": "05600d79bca56155",
+        "name": "ClientInfo",
+        "func": "var ipAddress = ( msg.req.headers['x-forwarded-for'] || '').split(',').pop() || \n          msg.req.connection.remoteAddress || \n          msg.req.socket.remoteAddress || \n          msg.req.connection.socket.remoteAddress;\nvar url = msg.req.url;\nvar header = {};\nheader['User-Agent'] = 'keycdn-tools:' + env.get('IPREFWEB');\nvar user = \"anon\"\nif (msg.hasOwnProperty(\"token\"))\n{\n    user = msg.token.username;\n}\nreturn {\n    topic:'clientInfo', \n    headers: header,\n    payload:{\n        ipAddress   : ipAddress\n    },\n    extraInfo       : {url:url, userID:msg.payload.userID, user:user},\n};\n",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 900,
+        "y": 120,
+        "wires": [
+            [
+                "ee1e0e6eb6e3fefd"
+            ]
+        ]
+    },
+    {
+        "id": "2e2f8159e34f123b",
+        "type": "mongodb3 in",
+        "z": "05600d79bca56155",
+        "service": "_ext_",
+        "configNode": "9cd5ff5e.caf86",
+        "name": "",
+        "collection": "accessLog",
+        "operation": "insertOne",
+        "x": 970,
+        "y": 240,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "c7da9dac.c1515",
+        "type": "mongodb3 in",
+        "z": "7cbe116050851432",
+        "service": "_ext_",
+        "configNode": "9cd5ff5e.caf86",
+        "name": "",
+        "collection": "trays",
+        "operation": "find.toArray",
+        "x": 740,
+        "y": 120,
+        "wires": [
+            [
+                "ef3db445.b303c8"
+            ]
+        ]
+    },
+    {
+        "id": "ef3db445.b303c8",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Parse query",
+        "func": "let water = null;\nlet air = null;\nfor (var ii = 0; ii < 2; ++ii)\n{\n    if ((msg.payload[ii].type == 'lora-temp')  && (msg.payload[ii].name == 'BLMC0002') ) water = msg.payload[ii];\n    if ((msg.payload[ii].type == 'lansitecTH')  && (msg.payload[ii].name == 'e9') ) air = msg.payload[ii];\n}\nlet newPayload = \n{\n    waterTimeStamp  : water.timeStamp,\n    waterTemp       : water.temperature.value,\n    airTimeStamp    : air.timeStamp,\n    airTemp         : air.temp.value,\n};\nif (msg.topic == undefined)\n{\n    msg.payload = newPayload;\n    return [null,msg];\n}\nlet newMsg = \n{\n    topic   :   msg.topic,\n    payload:\n    {\n        topic   :   msg.topic,\n        userID  :   msg.userID,\n        payload :   [water, air,global.get('espotPrice')]\n    }\n}\nreturn [newMsg,null];",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 980,
+        "y": 120,
+        "wires": [
+            [
+                "e4b5cdfb.1cf63"
+            ],
+            [
+                "2a2d7c4e.b4fe14"
+            ]
+        ]
+    },
+    {
+        "id": "a379e264.0ddd5",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Prep get Devices Query",
+        "func": "msg.payload = \n{\n    $or : [ \n        {$and : [ {type: env.get(\"WATER_DEV_TYPE\")}, {name: env.get(\"WATER_DEV_NAME\")} ]},\n        {$and : [ {type: env.get(\"AIR_DEV_TYPE\")}, {name: env.get(\"AIR_DEV_NAME\")} ]}\n        ]\n     \n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 120,
+        "wires": [
+            [
+                "c7da9dac.c1515"
+            ]
+        ]
+    },
+    {
+        "id": "8377d459.45b4f8",
+        "type": "http in",
+        "z": "7cbe116050851432",
+        "name": "/brantevik.json",
+        "url": "/brantevik.json",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 120,
+        "wires": [
+            [
+                "a379e264.0ddd5"
+            ]
+        ]
+    },
+    {
+        "id": "2a2d7c4e.b4fe14",
+        "type": "http response",
+        "z": "7cbe116050851432",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1220,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "6506cd6c.93ac74",
+        "type": "link in",
+        "z": "7cbe116050851432",
+        "name": "brantevik device query in",
+        "links": [
+            "56e4449c.aa565c",
+            "187857b3.a24488",
+            "efc341f5.3b27c"
+        ],
+        "x": 385,
+        "y": 80,
+        "wires": [
+            [
+                "a379e264.0ddd5"
+            ]
+        ]
+    },
+    {
+        "id": "e4b5cdfb.1cf63",
+        "type": "link out",
+        "z": "7cbe116050851432",
+        "name": "brantevik device query out",
+        "links": [
+            "6b2597a0.5798c8",
+            "f42dd5f2.45fce8",
+            "f5fe39ed.3730c8"
+        ],
+        "x": 1095,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "11446558.79091b",
+        "type": "template",
+        "z": "7cbe116050851432",
+        "name": "Set Title",
+        "field": "payload.title",
+        "fieldType": "msg",
+        "format": "html",
+        "syntax": "mustache",
+        "template": "Brantevik Väder",
+        "output": "str",
+        "x": 500,
+        "y": 300,
+        "wires": [
+            [
+                "ca138de2.f6762"
+            ]
+        ]
+    },
+    {
+        "id": "2eb15a26.4e1336",
+        "type": "template",
+        "z": "7cbe116050851432",
+        "name": "navBarIcon",
+        "field": "payload.navBarIcon",
+        "fieldType": "msg",
+        "format": "html",
+        "syntax": "mustache",
+        "template": "BrantevikLogo.png",
+        "output": "str",
+        "x": 510,
+        "y": 260,
+        "wires": [
+            [
+                "11446558.79091b"
+            ]
+        ]
+    },
+    {
+        "id": "e2242fbb.bffa4",
+        "type": "http in",
+        "z": "7cbe116050851432",
+        "name": "/brantevik-weather-widget",
+        "url": "/brantevik-weather-widget",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 210,
+        "y": 220,
+        "wires": [
+            [
+                "dd9d04915589108c"
+            ]
+        ]
+    },
+    {
+        "id": "e14c805b.d1dae",
+        "type": "websocket out",
+        "z": "7cbe116050851432",
+        "name": "/brantevik-weather-widget",
+        "server": "e865fc91.88a2a",
+        "client": "",
+        "x": 1290,
+        "y": 800,
+        "wires": []
+    },
+    {
+        "id": "f5fe39ed.3730c8",
+        "type": "link in",
+        "z": "7cbe116050851432",
+        "name": "mybrantevik-widget web socket input",
+        "links": [
+            "304b3835.9b6918",
+            "62fb9e33.02bff",
+            "6d200160.afc65",
+            "a988b405.392318",
+            "cec57df7.c5e52",
+            "e4b5cdfb.1cf63",
+            "e8228b8.3e95678",
+            "f06ef656.ad1c18",
+            "db7bf62708268f8d"
+        ],
+        "x": 1145,
+        "y": 800,
+        "wires": [
+            [
+                "e14c805b.d1dae",
+                "690bd22475a99ce7"
+            ]
+        ]
+    },
+    {
+        "id": "2f1b0478.24543c",
+        "type": "json",
+        "z": "7cbe116050851432",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 410,
+        "y": 800,
+        "wires": [
+            [
+                "9c6fa88d.798128"
+            ]
+        ]
+    },
+    {
+        "id": "9c6fa88d.798128",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Shift msg",
+        "func": "return msg.payload;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 540,
+        "y": 800,
+        "wires": [
+            [
+                "82d5a7b5.21ed68"
+            ]
+        ]
+    },
+    {
+        "id": "89399675.118c88",
+        "type": "websocket in",
+        "z": "7cbe116050851432",
+        "name": "/brantevik-weather-widget",
+        "server": "e865fc91.88a2a",
+        "client": "",
+        "x": 190,
+        "y": 800,
+        "wires": [
+            [
+                "2f1b0478.24543c"
+            ]
+        ]
+    },
+    {
+        "id": "efc341f5.3b27c",
+        "type": "link out",
+        "z": "7cbe116050851432",
+        "name": "mybrantevik-widget web socket out",
+        "links": [
+            "6506cd6c.93ac74"
+        ],
+        "x": 755,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "82d5a7b5.21ed68",
+        "type": "switch",
+        "z": "7cbe116050851432",
+        "name": "",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "readDatabase",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "getDevices",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 670,
+        "y": 800,
+        "wires": [
+            [
+                "b9a67318.b5255"
+            ],
+            [
+                "efc341f5.3b27c"
+            ]
+        ]
+    },
+    {
+        "id": "b9a67318.b5255",
+        "type": "link out",
+        "z": "7cbe116050851432",
+        "name": "mybrantevik-widget archive request",
+        "links": [
+            "c4595efc.a717b",
+            "a2c0b39be56ca374"
+        ],
+        "x": 755,
+        "y": 780,
+        "wires": []
+    },
+    {
+        "id": "ca138de2.f6762",
+        "type": "template",
+        "z": "7cbe116050851432",
+        "name": "script.global",
+        "field": "payload.script.global",
+        "fieldType": "msg",
+        "format": "javascript",
+        "syntax": "mustache",
+        "template": "// Global Javascript\n        useWebSockets(true);\n        var programStarted = false;\n        var validArchiveData = false;\n        let imageSettings = JSON.parse('{{{payload.imageSettings}}}');\n\n        function onDocumentReady()\n        {\n            let picNo = Math.floor(Math.random() * imageSettings.noPics) + 1;\n            //for winter show web cam right away\n            $(\"#widgetTable\").attr(\"background\",imageSettings.url + 'pic_' + picNo.toString() + '.png');\n\n            $(\"#historyChartContainer\").hide();\n            $(window).resize(function()\n            {\n                resizeText();\n            });\n        }\n        function onWebSocketOpen()\n        {\n            if (!programStarted)\n            {\n                programStarted = true;\n                var webSocketMsg = \n                {\n                    topic     : 'getDevices',\n                    payload   : {},\n                    userID    : userID,\n                };\n                ws.send(JSON.stringify(webSocketMsg));\n            }\n        }\n        function onWebSocketClose()\n        {\n            \n        }\n        function onWebSocketMessage(msg)\n        {\n            switch(msg.topic)\n            {\n                case 'readDatabase':\n                    if (msg.userID == userID)\n                    {\n                        putArchiveValues(msg.payload);\n                    }\n                    break;\n                case 'getDevices':\n                    if (msg.userID == userID)\n                    {\n                        var time = new Date(msg.payload[0].timeStamp).toLocaleString('en-SE',{year: 'numeric', month: '2-digit', day : '2-digit', hour12:false, hour: '2-digit', minute: '2-digit', second: '2-digit'}).replace(',', '');\n                        $('#waterTempDate').text('Brantevik ' + time);\n                        updateWaterTemp(msg.payload[0]);\n                        updateAirTemp(msg.payload[1]);\n//                        updateEspotPrice(msg.payload[2]);\n                     }\n                    break;\n                default:\n                    break;\n            }\n        }\n        function getStatus()\n        {\n            $(\"#historyChartContainer\").hide();\n            $(\"#status\").show();\n        }\n        function resizeText()\n        {\n            if($('#status').is(\":visible\")) return;\n            if (validArchiveData)\n            {\n                windowWidth = $( '#historyChartContainer' ).width();\n                var width = $(\"#historyChartContainer\").width() * 0.92;\n                var height = historyPlotHeightRatio * width;\n                historyPlotLayout.width = width.toFixed(0);\n                historyPlotLayout.height = height.toFixed(0);\n                Plotly.newPlot('historyChart', [historyPlotTrace1,historyPlotTrace2], historyPlotLayout, {displayModeBar: false, staticPlot: true});\n                return;\n            }\n        }\n",
+        "output": "str",
+        "x": 770,
+        "y": 220,
+        "wires": [
+            [
+                "de9d819b.fe1b9"
+            ]
+        ]
+    },
+    {
+        "id": "e2dfd322.f1489",
+        "type": "template",
+        "z": "7cbe116050851432",
+        "name": "javascript",
+        "field": "payload.javascript",
+        "fieldType": "msg",
+        "format": "javascript",
+        "syntax": "mustache",
+        "template": "{{{payload.script.global}}}\n{{{payload.script.updateReadings}}}\n{{{payload.script.archive}}}\n",
+        "output": "str",
+        "x": 760,
+        "y": 340,
+        "wires": [
+            [
+                "f1ac07b2.ceee48"
+            ]
+        ]
+    },
+    {
+        "id": "f1ac07b2.ceee48",
+        "type": "template",
+        "z": "7cbe116050851432",
+        "name": "body",
+        "field": "payload.body",
+        "fieldType": "msg",
+        "format": "html",
+        "syntax": "mustache",
+        "template": "    <div id=\"status\" width=\"100%\" align=\"center\">\n        <table id=\"widgetTable\" width=\"100%\" background=\"/img/BrantePicBlue.jpg\" style=\"background-size:100%;background-repeat:no-repeat;background-position:center;height:75.0vw\">\n            <tr class=\"widget-line-height\">\n                <td align='center' width=\"100%\" style=\"padding-top:0vw;padding-bottom:0vw;\">\n                    <span id=\"waterTempDate\" style=\"font-size: 5vw; color:white;\"></span> \n                </td>\n            </tr>\n            <tr>\n                <td width=\"100%\">\n                    <table width=\"100%\" style=\"padding-top:20vw;padding-bottom:0vw;\">\n                        <tr class=\"widget-line-height\">\n                            <td align='left'  width=\"40%\" style=\"padding-left:10vw;\">\n                                <span id='waterTempLabel' style='font-size: 10vw; color:white;' >Vatten</span>  \n                            </td>\n                            <td  align='right' width=\"60%\" style=\"padding-right:10vw;\">\n                                <span id='waterTemp' style='font-size: 10vw; color:white;' ></span>\n                            </td>\n                        </tr>\n                        <tr class=\"widget-line-height\">\n                            <td align='left' width=\"40%\" style=\"padding-left:10vw;\">\n                                <span id='airTempLabel' style='font-size: 10vw; color:white;' >Luft</span> \n                            </td>\n                            <td align='right' width=\"60%\" style=\"padding-right:10vw;\"> \n                                <span id='airTemp' style='font-size: 10vw; color:white;' ></span>\n                            </td>\n                        </tr>\n\n                        <tr class=\"widget-line-height\">\n                            <td align='left' width=\"40%\" style=\"padding-left:10vw;\">\n                                <span id='humidityLabel' style='font-size: 10vw; color:white;' >Fuktighet</span> \n                            </td>\n                            <td align='right' width=\"60%\" style=\"padding-right:10vw;\"> \n                                <span id='humidity' style='font-size: 10vw; color:white;' ></span>\n                            </td>\n                        </tr>\n\n                    </table>\n                </td>\n            </tr>\n            <tr>\n                <td align='center' style=\"padding-top:2vw;padding-bottom:1vw;\">\n                    <table width=\"100%\">\n                        <tr class=\"widget-line-height\">\n                            <td align='left' style=\"padding-left:3vw;\">\n                                <span id='powerBlack' style=\"font-size: 3vw; color:white;\">Powered by </span><a href='https://blinky-lite.org' id='blinkyLinkBlack' style=\"font-size: 3vw; color: white;text-decoration: underline;\">Blinky-Lite</a>\n<!--                                <span id='powerWhite' style=\"font-size: 3vw; color:white;\"></span><a href='/' id='blinkyLinkWhite' style=\"font-size: 3vw; color: white;text-decoration: underline;\">Mitt Brantevik</a> -->\n                            </td>\n                            <td align='right' style=\"padding-right:3vw;\">\n                                <span id=\"dataFetchMessage\" style=\"font-size: 3vw; color:white;\"></span>\n                            </td>\n                            <td align='right' style=\"padding-right:4vw;\">\n                                <button class='btn button-link' id=\"historyButton\" style=\"font-size: 3vw; color:white; border-color:white;\" onclick=\"getArchive(168)\" >Historik</button>\n                            </td>\n                        </tr>\n                    </table>\n                </td>\n            </tr>\n        </table>\n    </div>\n    <div id=\"historyChartContainer\" width=\"100%\" align=\"center\">\n        <table width=\"100%\">\n            <tr>\n                <td width=\"100%\">\n                    <div id=\"historyChart\" width=\"100%\" align=\"center\" style=\"border-width: 2px; border-style: solid; border-color: '#557a95'; border-radius: 3vw;background-color: black;\"></div>\n                </td>\n            </tr>\n            <tr>\n                <td align='center' >\n                    <table width=\"100%\">\n                        <tr>\n                            <td align='left' style=\"padding-left:3vw;\">\n                                <span id='powerBlack' style=\"font-size: 3vw; color:black;\">Powered by </span><a href='https://blinky-lite.org' id='blinkyLinkBlack' style=\"font-size: 3vw; color: black;text-decoration: underline;\">Blinky-Lite</a>\n                            </td>\n                            <td align='right' style=\"padding-right:3vw;\">\n                                <button class='btn button-link' id=\"backButton\" style=\"font-size: 3vw; color:black; border-color:black;\" onclick=\"getStatus()\" >tillbaka</button>\n                            </td>\n                        </tr>\n                    </table>\n                </td>\n            </tr>\n        </table>\n    </div>\n",
+        "output": "str",
+        "x": 970,
+        "y": 340,
+        "wires": [
+            [
+                "eac0118b.f84"
+            ]
+        ]
+    },
+    {
+        "id": "de9d819b.fe1b9",
+        "type": "template",
+        "z": "7cbe116050851432",
+        "name": "script.updateReadings",
+        "field": "payload.script.updateReadings",
+        "fieldType": "msg",
+        "format": "javascript",
+        "syntax": "mustache",
+        "template": "// Update Readings Javascript\n        function updateAirTemp(device)\n        {\n            if ((new Date().getTime() - device.timeStamp) < 3600000)\n            {\n                $('#airTemp').text(device.temp.value.toFixed(1) + ' C');\n                $('#humidity').text(device.humidity.value.toFixed(0) + ' %');\n            }\n            else\n            {\n//                $('#airTemp').html(\"&#128533;\");\n                $('#airTemp').html(\" \");\n                $('#humidity').html(\" \");\n            }\n        }\n        function updateWaterTemp(device)\n        {\n            if ((new Date().getTime() - device.timeStamp) < 3600000)\n            {\n                $('#waterTemp').text(device.temperature.value.toFixed(1) + ' C');\n//                $('#waterTemp').html(\"&#128533;\");\n            }\n            else\n            {\n//                $('#waterTemp').html(\"&#128533;\");\n                $('#waterTemp').html(\" \");\n            }\n        }\n        function updateEspotPrice(device)\n        {\n            let color = 'green';\n            if (device.price.value > device.price.alarm.limits.low) color = 'yellow';\n            if (device.price.value > device.price.alarm.limits.high) color = 'red';\n            color = 'white'\n            $('#espotPrice').css('color', color);\n            $('#espotPrice').text(device.price.value.toFixed(2) + ' SEK/kW-hr');\n        }\n",
+        "output": "str",
+        "x": 800,
+        "y": 260,
+        "wires": [
+            [
+                "e67f95a4.5dbfa8"
+            ]
+        ]
+    },
+    {
+        "id": "eac0118b.f84",
+        "type": "template",
+        "z": "7cbe116050851432",
+        "name": "CSS",
+        "field": "payload.css",
+        "fieldType": "msg",
+        "format": "css",
+        "syntax": "mustache",
+        "template": "        :root \n        {\n          --color1: #415c71;\n          --color2: #547792;\n          --color3: #9eb5c7;\n          --color4: #c6c2bb;\n          --color5: #fdc300;\n          --big-text-size :300%;\n          --bold-text :900;\n          --vert-pad : 25px;\n          --horz-pad : 25px;\n        }\n        body \n        {\n            max-width: 100%;\n            background-color: transparent !important;\n        }\n        .widget-line-height\n        {\n            line-height: 12vw;\n        }\n        img \n        {\n          object-fit: contain;\n        }\n        a\n        {\n            color: white;\n        }\n        a:visited \n        { \n            color: var(--white);\n        }\n        a:hover \n        { \n            color: var(--color5);\n        }\n\n        .jumbotron \n        {\n          background-color: var(--color2) !important;\n          color: white;\n          padding-top:25px;\n          padding-bottom:25px;\n        }\n        .jumbotron-title\n        {\n          color:var(--color5);\n        }\n        .jumbotron-button\n        {\n          color: white;\n          background-color: var(--color1);\n       }\n        .card\n        {\n          background-color: var(--color2) !important;\n          text-align: center;\n        }\n        .card-body\n        {\n          background-color: var(--color3);;\n        }\n        .card-button\n        {\n          color: var(--color5) !important;\n          background-color: var(--color1) !important;\n          font-weight: bold;\n        }\n        .card-title\n        {\n          color: var(--color5);\n          font-weight: var(--bold-text);\n          font-size: var(--big-text-size);\n         }\n        .card-text\n        {\n          color: white;\n          text-align: left;\n          font-size: var(--big-text-size);\n        }\n        .danger-card\n        {\n          background-color: yellow !important;\n          text-align: center;\n        }\n        .danger-card-body\n        {\n          background-color: yellow;\n        }\n        .danger-card-button\n        {\n          color: yellow !important;\n          background-color: red !important;\n          font-weight: bold;\n        }\n        .danger-card-title\n        {\n          color: red;\n          font-weight: var(--bold-text);\n          font-size: var(--big-text-size);\n         }\n        .danger-card-text\n        {\n          color: white;\n          text-align: left;\n          font-size: var(--big-text-size);\n        }\n        .tableHeading\n        {\n          color:var(--container-title-color);\n        }\n        .tableText\n        {\n          color:var(--container-text-color);\n          font-size: var(--big-text-size);\n        }\n       .vert-pad\n        {\n            padding-top:var(--vert-pad);;\n            padding-bottom:var(--vert-pad);;\n        }\n        .horz-pad\n        {\n            padding-left:var(--horz-pad);;\n            padding-right:var(--horz-pad);;\n        }\n        .big-text\n        {\n            font-size: var(--big-text-size);\n        }\n        .bold-text\n        {\n            font-weight: var(--bold-text);\n        }\n       .ui-dialog-titlebar-close \n        {\n            visibility: hidden;\n        }\n        input.inputLarger \n        { \n            transform: scale(3); \n            margin: 1px;\n        }\n        .googleSlide4by3-container \n        {\n            position: relative;\n            overflow: hidden;\n            padding-top: 75.0%;\n        }\n        .googleSlide4by3-iframe {\n            position: absolute;\n            top: 0;\n            left: 0;\n            width: 100%;\n            height: 100%;\n            border: 0;\n        }        \n        .custom-select\n        {\n            color: black;\n            background-color: white;\n            height:80px;\n            line-height:70px;\n        }\n        .button-link \n        {\n            background: none!important;\n            border-type: solid;\n            padding: 2px!important;\n            cursor: pointer;\n        }\n",
+        "output": "str",
+        "x": 1110,
+        "y": 340,
+        "wires": [
+            [
+                "5bd318076fa0e9f1"
+            ]
+        ]
+    },
+    {
+        "id": "e67f95a4.5dbfa8",
+        "type": "template",
+        "z": "7cbe116050851432",
+        "name": "script.archive",
+        "field": "payload.script.archive",
+        "fieldType": "msg",
+        "format": "javascript",
+        "syntax": "mustache",
+        "template": "// Archive JavaScript\n        var archiveRequestList = [];\n        var archiveList = [];\n        function getArchive(hours)\n        { \n            if (validArchiveData)\n            {\n                var width = $(\"#status\").width() * 0.92;\n                var height = $(\"#status\").height() * 0.87;\n                historyPlotLayout.width = width.toFixed(0);\n                historyPlotLayout.height = height.toFixed(0);\n                $(\"#status\").hide();\n                $(\"#historyChartContainer\").show();\n                Plotly.newPlot('historyChart', [historyPlotTrace1,historyPlotTrace2], historyPlotLayout, {displayModeBar: false, staticPlot: false});\n                return;\n            }\n            $(\"#historyButton\").hide();\n            $(\"#dataFetchMessage\").text('Hämtar data...');\n\n            archiveRequestList = [];\n            archiveList = [];\n            var stopDate = new Date().getTime();\n            var startDate = stopDate - hours * 3600000;\n            let waterTempRequest = \n            {\n                type : 'lora-temp',\n                name : 'BLMC0002', \n                attr : ['temperature'],\n                startDate: startDate, \n                stopDate: stopDate,\n            };\n            let airTempRequest = \n            {\n                type : 'lansitecTH',\n                name : 'e9', \n                attr : ['temp'],\n                startDate: startDate, \n                stopDate: stopDate,\n            };\n            archiveRequestList.push(waterTempRequest);\n            archiveRequestList.push(airTempRequest);\n            getArchiveValues();\n        }\n        function getArchiveValues()\n        {\n            var actionMsg = \n                {\n                    device      : archiveRequestList[0]\n                };\n//            sendActionMsg('readDatabase','readDatabase', actionMsg);\n            var webSocketMsg = \n            {\n                topic     : 'readDatabase',\n                payload   : actionMsg,\n                userID    : userID,\n            };\n            ws.send(JSON.stringify(webSocketMsg));\n            archiveRequestList.shift();\n            return;\n        }\n        function putArchiveValues(data)\n        {\n            archiveList.push(data);\n            if (archiveRequestList.length > 0)\n            {\n                getArchiveValues();\n            }\n            else\n            {\n                plotArchive();\n            }\n        }\n        var historyPlotLayout = \n        {\n            plot_bgcolor:\"black\",\n            paper_bgcolor:\"black\",\n            showlegend  : true,\n            legend      : \n            {\n                x: 0, \n                y: 1.15,\n                \"orientation\": \"h\",\n                font: \n                {\n                    size: 20,\n                    color: 'white'\n                },\n            },\n            height      : '100',\n            width       : '200',\n            xaxis       :\n            {\n                type: 'date',\n                tickformat: '%d-%m %H:%M', // For more time formatting types, see: https://github.com/d3/d3-time-format/blob/master/README.md\n                fixedrange      : true,\n//                dtick : 86400000,\n                title           : 'Date',\n                titlefont       : {color: 'white', size: 20},\n                tickfont        : {color: 'white', size: 20},\n                gridcolor       : 'grey',\n                zerolinecolor   : 'grey',\n                linecolor       : 'grey',\n            },\n            yaxis:\n            {\n                title           : 'Temperature (C)',\n                titlefont       : {color: 'white', size: 20},\n                tickfont        : {color: 'white', size: 20},\n                gridcolor       : 'grey',\n                zerolinecolor   : 'grey',\n                linecolor       : 'grey',\n                font: \n                {\n                    size: 20,\n                    color: 'white'\n                },\n\n                fixedrange      : true\n//                    range           : [0,30],\n//                    dtick           :  5\n\n            },\n            margin: \n            {\n                l: 100,\n                r: 5,\n                b: 100,\n                t: 1,\n//                pad: 20\n            }\n        };\n        var historyPlotTrace1 = \n        {\n            x: [],\n            y: [],\n            name: 'Hav (C)',\n            hovertemplate: '%{y}C',\n            yaxis: 'y1',\n            type: 'scatter',\n            mode: 'lines',\n            line: { color:  '#557a95',width:5},\n            visible: true\n\n        };\n        var historyPlotTrace2 = \n        {\n            x: [],\n            y: [],\n            name: 'Luft (C)',\n            hovertemplate: '%{y}C',\n            yaxis: 'y1',\n            type: 'scatter',\n            mode: 'lines',\n            line: { color:  '#f2a31f',width:5},\n            visible: true\n\n        };\n         var historyPlotHeightRatio = 1.0;\n        function plotArchive()\n        {\n            $(\"#dataFetchMessage\").text('');\n            $(\"#historyButton\").show();\n            \n            var width = $(\"#status\").width() * 0.92;\n            var height = $(\"#status\").height() * 0.87;\n            historyPlotHeightRatio = height / width;\n            historyPlotLayout.width = width.toFixed(0);\n            historyPlotLayout.height = height.toFixed(0);\n            \n            $(\"#status\").hide();\n            $(\"#historyChartContainer\").show();\n            validArchiveData = true;\n            historyPlotTrace1.x = [];\n            historyPlotTrace1.y = [];\n            historyPlotTrace2.x = [];\n            historyPlotTrace2.y = [];\n            for (var ii = 0; ii < archiveList[0].trace.length; ++ii)\n            {\n                var x = archiveList[0].trace[ii].timeStamp;\n                var y = archiveList[0].trace[ii][archiveList[0].device.attr[0]];\n                historyPlotTrace1.x.push(x);\n                historyPlotTrace1.y.push(y) ;\n            }\n            for (var ii = 0; ii < archiveList[1].trace.length; ++ii)\n            {\n                var x = archiveList[1].trace[ii].timeStamp;\n                historyPlotTrace2.x.push(x);\n                historyPlotTrace2.y.push(archiveList[1].trace[ii][archiveList[1].device.attr[0]]) ;\n            }\n            Plotly.newPlot('historyChart', [historyPlotTrace1,historyPlotTrace2], historyPlotLayout, {displayModeBar: false, staticPlot: false});\n        }\n        function displayAll()\n        {\n            Plotly.newPlot('historyChart', [historyPlotTrace1,historyPlotTrace2], historyPlotLayout, {displayModeBar: false, staticPlot: false});\n            return;\n        }\n",
+        "output": "str",
+        "x": 770,
+        "y": 300,
+        "wires": [
+            [
+                "e2dfd322.f1489"
+            ]
+        ]
+    },
+    {
+        "id": "ddb57677726f36af",
+        "type": "template",
+        "z": "7cbe116050851432",
+        "name": "Set Title",
+        "field": "payload.title",
+        "fieldType": "msg",
+        "format": "html",
+        "syntax": "mustache",
+        "template": "Brantevik Väder",
+        "output": "str",
+        "x": 460,
+        "y": 540,
+        "wires": [
+            [
+                "1e6e4ae4db54bdc8"
+            ]
+        ]
+    },
+    {
+        "id": "1e1bd070a3020c97",
+        "type": "template",
+        "z": "7cbe116050851432",
+        "name": "navBarIcon",
+        "field": "payload.navBarIcon",
+        "fieldType": "msg",
+        "format": "html",
+        "syntax": "mustache",
+        "template": "BrantevikLogo.png",
+        "output": "str",
+        "x": 470,
+        "y": 500,
+        "wires": [
+            [
+                "ddb57677726f36af"
+            ]
+        ]
+    },
+    {
+        "id": "fe92e495f7e76265",
+        "type": "http in",
+        "z": "7cbe116050851432",
+        "name": "/w",
+        "url": "/w",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 156,
+        "y": 451,
+        "wires": [
+            [
+                "6037b095e7063646"
+            ]
+        ]
+    },
+    {
+        "id": "1e6e4ae4db54bdc8",
+        "type": "template",
+        "z": "7cbe116050851432",
+        "name": "script.global",
+        "field": "payload.script.global",
+        "fieldType": "msg",
+        "format": "javascript",
+        "syntax": "mustache",
+        "template": "// Global Javascript\n        useWebSockets(true);\n        programStarted = false;\n        let imageSettings = JSON.parse('{{{payload.imageSettings}}}');\n\n        function onDocumentReady()\n        {\n\n            let picNo = Math.floor(Math.random() * imageSettings.noPics) + 1;\n            //for winter show web cam right away\n            $(\"#widgetTable\").attr(\"background\",imageSettings.url + 'pic_' + picNo.toString() + '.png');\n        }\n        function onWebSocketOpen()\n        {\n            if (!programStarted)\n            {\n                programStarted = true;\n                var webSocketMsg = \n                {\n                    topic     : 'getDevices',\n                    payload   : {},\n                    userID    : userID,\n                };\n                ws.send(JSON.stringify(webSocketMsg));\n            }\n            else\n            {\n                $(\"#widgetTable\").attr(\"background\",'img/blinky-webcam/blinky-webcam-01.jpg' +'?t=' + new Date().getTime().toString());\n            }\n        }\n        function onWebSocketClose()\n        {\n            \n        }\n        function onWebSocketMessage(msg)\n        {\n            switch(msg.topic)\n            {\n                case 'getDevices':\n                    if (msg.userID == userID)\n                    {\n                        var time = new Date().toLocaleString('en-SE',{year: 'numeric', month: '2-digit', day : '2-digit', hour12:false, hour: '2-digit', minute: '2-digit', second: '2-digit'}).replace(',', '');\n                        $('#waterTempDate').text('Brantevik');\n                        updateWaterTemp(msg.payload[0]);\n                        updateAirTemp(msg.payload[1]);\n                     }\n                    break;\n                default:\n                    break;\n            }\n        }\n",
+        "output": "str",
+        "x": 776,
+        "y": 451,
+        "wires": [
+            [
+                "bfa74fca52af109a"
+            ]
+        ]
+    },
+    {
+        "id": "77f50b2033b0eb02",
+        "type": "template",
+        "z": "7cbe116050851432",
+        "name": "javascript",
+        "field": "payload.javascript",
+        "fieldType": "msg",
+        "format": "javascript",
+        "syntax": "mustache",
+        "template": "{{{payload.script.global}}}\n{{{payload.script.updateReadings}}}\n",
+        "output": "str",
+        "x": 766,
+        "y": 531,
+        "wires": [
+            [
+                "9070c845d25ab0c1"
+            ]
+        ]
+    },
+    {
+        "id": "9070c845d25ab0c1",
+        "type": "template",
+        "z": "7cbe116050851432",
+        "name": "body",
+        "field": "payload.body",
+        "fieldType": "msg",
+        "format": "html",
+        "syntax": "mustache",
+        "template": "    <div id=\"status\" width=\"100%\" align=\"center\">\n        <table id=\"widgetTable\" width=\"100%\" background=\"/img/blinky-webcam/blinky-webcam-01.jpg\" style=\"background-size:100% 100%;background-repeat:no-repeat;\">\n            <tr >\n                <td align='center' width=\"100%\" style=\"padding-top:11vw;padding-bottom:0vw;\">\n                    <span id=\"waterTempDate\" style=\"font-size: 10vw; color:white;\"></span> \n                </td>\n            </tr>\n            <tr>\n                <td width=\"100%\"  style=\"padding-bottom:25vw;\">\n                    <table width=\"100%\">\n                        <tr >\n                            <td align='left' width=\"40%\" style=\"padding-left:14vw;\">\n                                <span id='airTempLabel' style='font-size: 12vw; color:white;' >Luft</span>\n                            </td>\n                            <td align='right' width=\"60%\" style=\"padding-right:14vw;\"> \n                                <span id='airTemp' style='font-size: 12vw; color:white;' ></span>\n                            </td>\n                        </tr>\n                        <tr >\n                            <td align='left'  width=\"40%\" style=\"padding-left:14vw;\">\n                                <span id='waterTempLabel' style='font-size: 12vw; color:white;' >Vatten</span>\n                            </td>\n                            <td  align='right' width=\"60%\" style=\"padding-right:14vw;\">\n                                <span id='waterTemp' style='font-size: 12vw; color:white;' ></span>\n                            </td>\n                        </tr>\n                    </table>\n                </td>\n            </tr>\n        </table>\n    </div>\n",
+        "output": "str",
+        "x": 976,
+        "y": 531,
+        "wires": [
+            [
+                "7a4dd1eef26baf46"
+            ]
+        ]
+    },
+    {
+        "id": "bfa74fca52af109a",
+        "type": "template",
+        "z": "7cbe116050851432",
+        "name": "script.updateReadings",
+        "field": "payload.script.updateReadings",
+        "fieldType": "msg",
+        "format": "javascript",
+        "syntax": "mustache",
+        "template": "// Update Readings Javascript\n        function updateAirTemp(device)\n        {\n            if ((new Date().getTime() - device.timeStamp) < 3600000)\n            {\n                $('#airTemp').text(device.temp.value.toFixed(1) + ' C');\n            }\n        }\n        function updateWaterTemp(device)\n        {\n            if ((new Date().getTime() - device.timeStamp) < 3600000)\n            {\n                $('#waterTemp').text(device.temperature.value.toFixed(1) + ' C');\n            }\n        }\n",
+        "output": "str",
+        "x": 806,
+        "y": 491,
+        "wires": [
+            [
+                "77f50b2033b0eb02"
+            ]
+        ]
+    },
+    {
+        "id": "7a4dd1eef26baf46",
+        "type": "template",
+        "z": "7cbe116050851432",
+        "name": "CSS",
+        "field": "payload.css",
+        "fieldType": "msg",
+        "format": "css",
+        "syntax": "mustache",
+        "template": "        :root \n        {\n          --color1: #415c71;\n          --color2: #547792;\n          --color3: #9eb5c7;\n          --color4: #c6c2bb;\n          --color5: #fdc300;\n          --big-text-size :300%;\n          --bold-text :900;\n          --vert-pad : 25px;\n          --horz-pad : 25px;\n        }\n        body \n        {\n            max-width: 100%;\n            background-color: var(--color1); !important;\n        }\n        img \n        {\n          object-fit: contain;\n        }\n        a\n        {\n            text-decoration: none; \n        }\n        a:visited \n        { \n            text-decoration: none;\n        }\n        a:hover \n        { \n            text-decoration: none; \n        }\n\n        .jumbotron \n        {\n          background-color: var(--color2) !important;\n          color: white;\n          padding-top:25px;\n          padding-bottom:25px;\n        }\n        .jumbotron-title\n        {\n          color:var(--color5);\n        }\n        .jumbotron-button\n        {\n          color: white;\n          background-color: var(--color1);\n       }\n        .card\n        {\n          background-color: var(--color2) !important;\n          text-align: center;\n        }\n        .card-body\n        {\n          background-color: var(--color3);;\n        }\n        .card-button\n        {\n          color: var(--color5) !important;\n          background-color: var(--color1) !important;\n          font-weight: bold;\n        }\n        .card-title\n        {\n          color: var(--color5);\n          font-weight: var(--bold-text);\n          font-size: var(--big-text-size);\n         }\n        .card-text\n        {\n          color: white;\n          text-align: left;\n          font-size: var(--big-text-size);\n        }\n        .danger-card\n        {\n          background-color: yellow !important;\n          text-align: center;\n        }\n        .danger-card-body\n        {\n          background-color: yellow;\n        }\n        .danger-card-button\n        {\n          color: yellow !important;\n          background-color: red !important;\n          font-weight: bold;\n        }\n        .danger-card-title\n        {\n          color: red;\n          font-weight: var(--bold-text);\n          font-size: var(--big-text-size);\n         }\n        .danger-card-text\n        {\n          color: white;\n          text-align: left;\n          font-size: var(--big-text-size);\n        }\n        .tableHeading\n        {\n          color:var(--container-title-color);\n        }\n        .tableText\n        {\n          color:var(--container-text-color);\n          font-size: var(--big-text-size);\n        }\n       .vert-pad\n        {\n            padding-top:var(--vert-pad);;\n            padding-bottom:var(--vert-pad);;\n        }\n        .horz-pad\n        {\n            padding-left:var(--horz-pad);;\n            padding-right:var(--horz-pad);;\n        }\n        .big-text\n        {\n            font-size: var(--big-text-size);\n        }\n        .bold-text\n        {\n            font-weight: var(--bold-text);\n        }\n       .ui-dialog-titlebar-close \n        {\n            visibility: hidden;\n        }\n        input.inputLarger \n        { \n            transform: scale(3); \n            margin: 1px;\n        }\n        .googleSlide4by3-container \n        {\n            position: relative;\n            overflow: hidden;\n            padding-top: 75.0%;\n        }\n        .googleSlide4by3-iframe {\n            position: absolute;\n            top: 0;\n            left: 0;\n            width: 100%;\n            height: 100%;\n            border: 0;\n        }        \n        .custom-select\n        {\n            color: black;\n            background-color: white;\n            height:80px;\n            line-height:70px;\n        }\n        .button-link \n        {\n            background: none!important;\n            border-type: solid;\n            padding: 2px!important;\n            cursor: pointer;\n        }\n",
+        "output": "str",
+        "x": 1116,
+        "y": 531,
+        "wires": [
+            [
+                "ad534efa765c1915"
+            ]
+        ]
+    },
+    {
+        "id": "fe39b6d6b15f3766",
+        "type": "websocket in",
+        "z": "7cbe116050851432",
+        "name": "/w/websocket",
+        "server": "4fbbe9375c5eb4a7",
+        "client": "",
+        "x": 150,
+        "y": 740,
+        "wires": [
+            [
+                "2f1b0478.24543c"
+            ]
+        ]
+    },
+    {
+        "id": "690bd22475a99ce7",
+        "type": "websocket out",
+        "z": "7cbe116050851432",
+        "name": "/w/websocket",
+        "server": "4fbbe9375c5eb4a7",
+        "client": "",
+        "x": 1260,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "5bd318076fa0e9f1",
+        "type": "subflow:05600d79bca56155",
+        "z": "7cbe116050851432",
+        "name": "",
+        "x": 1270,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "19cfed836a288976",
+        "type": "mongodb3 in",
+        "z": "7cbe116050851432",
+        "service": "_ext_",
+        "configNode": "9cd5ff5e.caf86",
+        "name": "",
+        "collection": "archiver",
+        "operation": "find.toArray",
+        "x": 970,
+        "y": 1020,
+        "wires": [
+            [
+                "e2996f968e929df8"
+            ]
+        ]
+    },
+    {
+        "id": "4fd0ab594cb94cb5",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Setup Archive Query",
+        "func": "var projectionFilter =  \n{\n    projection:\n    {\n        _id                         :   0, \n        type                        :   1,  \n        name                        :   1,  \n        timeStamp                   :   1 \n    } \n};\nfor (var ii = 0; ii < msg.payload.device.attr.length; ++ii)\n{\n    projectionFilter.projection[msg.payload.device.attr[ii]] = 1;\n}\nvar queryFilter = \n{\n    $and :\n    [\n        {\n            type: msg.payload.device.type\n        },\n        {\n            name: msg.payload.device.name\n        },\n        {\n            timeStamp :\n            {\n                $gte: msg.payload.device.startDate,\n                $lte: msg.payload.device.stopDate\n            }\n        }\n    ] \n    \n}\nvar newMsg = \n{\n    topic           : msg.topic,\n    userID          : msg.userID,\n    payload         : [queryFilter, projectionFilter],\n    device          : msg.payload.device,\n};\nreturn newMsg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 700,
+        "y": 1020,
+        "wires": [
+            [
+                "19cfed836a288976"
+            ]
+        ]
+    },
+    {
+        "id": "e2996f968e929df8",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Sort Archive Data",
+        "func": "function objectLength( object ) {\n    var length = 0;\n    for( var key in object ) {\n        if( object.hasOwnProperty(key) ) {\n            ++length;\n        }\n    }\n    return length;\n}\n\nfunction sortByKey(arr, key) \n{\n    return arr.sort( function(a, b) \n        {\n            var x = a[key]; \n            var y = b[key];\n            return ((x < y) ? -1 : ((x > y) ? 1 : 0));\n        } );\n}\n\nvar numRecords = objectLength(msg.payload);\nif (numRecords < 1)\n{\n    return {\n        topic : msg.device.type,\n        payload:{\n            topic           : msg.topic,\n            payload         : {device: msg.device, trace:null},\n            userID          : msg.userID,\n        }\n    };\n}\nvar records = [];\nfor (var ii = 0; ii < numRecords; ++ii) records[ii] = msg.payload[ii]; \nsortByKey(records, 'timeStamp');\nvar trace = [];\nfor (var ii = 0; ii < numRecords; ++ii)\n{\n    trace[ii] = {timeStamp: records[ii].timeStamp};\n    for (var ij = 0; ij < msg.device.attr.length; ++ij)\n    {\n        trace[ii][msg.device.attr[ij]] = records[ii][msg.device.attr[ij]];\n    }\n}\n\nreturn {\n    topic : msg.device.deviceType,\n    payload:{\n        topic           : msg.topic,\n        payload         : {device: msg.device, trace: trace},\n        userID          : msg.userID,\n    }\n};\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1230,
+        "y": 1020,
+        "wires": [
+            [
+                "db7bf62708268f8d"
+            ]
+        ]
+    },
+    {
+        "id": "a2c0b39be56ca374",
+        "type": "link in",
+        "z": "7cbe116050851432",
+        "name": "Setup Archive in",
+        "links": [
+            "cc1f29ab.67bb78",
+            "8257a0f.6bb886",
+            "a66aeb44.77e748",
+            "e826b9af.41ca18",
+            "38378280.30819e",
+            "1ba08149.e5642f",
+            "c7ccca02.902f08",
+            "8a054338.b6be3",
+            "7ceba2d4.4dcf3c",
+            "721a7865.6ff7e8",
+            "3d600dd.1fe0cf2",
+            "d958fbdd.fe1e48",
+            "a92d4c9a.7f5e4",
+            "b9a67318.b5255",
+            "33c65adc.cedff6"
+        ],
+        "x": 555,
+        "y": 1020,
+        "wires": [
+            [
+                "4fd0ab594cb94cb5"
+            ]
+        ]
+    },
+    {
+        "id": "db7bf62708268f8d",
+        "type": "link out",
+        "z": "7cbe116050851432",
+        "name": "readDatabase",
+        "mode": "link",
+        "links": [
+            "f5fe39ed.3730c8"
+        ],
+        "x": 1395,
+        "y": 1020,
+        "wires": []
+    },
+    {
+        "id": "ad534efa765c1915",
+        "type": "subflow:05600d79bca56155",
+        "z": "7cbe116050851432",
+        "name": "",
+        "x": 1276,
+        "y": 531,
+        "wires": []
+    },
+    {
+        "id": "dd9d04915589108c",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "set Image settings",
+        "func": "msg.payload['imageSettings'] = JSON.stringify({url:env.get('IMG_URL'), noPics:env.get('NO_IMG')});\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 530,
+        "y": 220,
+        "wires": [
+            [
+                "2eb15a26.4e1336"
+            ]
+        ]
+    },
+    {
+        "id": "6037b095e7063646",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "set Image settings",
+        "func": "msg.payload['imageSettings'] = JSON.stringify({url:env.get('IMG_URL'), noPics:env.get('NO_IMG')});\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 490,
+        "y": 460,
+        "wires": [
+            [
+                "1e1bd070a3020c97"
+            ]
+        ]
     }
 ]

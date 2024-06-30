@@ -1,4 +1,13 @@
-NODEREDPORT=60427
+BOX=bl-iwa-01
+MONGODBIP=mongodb://admin:xxxxx@192.168.4.1:27017/blinky-lite?retryWrites=true&serverSelectionTimeoutMS=5000&connectTimeoutMS=10000&authSource=admin&authMechanism=SCRAM-SHA-256
+AIR_DEV_TYPE=lansitecTH
+AIR_DEV_NAME=e9
+WATER_DEV_TYPE=lora-temp
+WATER_DEV_NAME=BLMC0002
+IMG_URL=http://192.168.1.47:60666/extra-img/brantevik_pics/
+NO_IMG=30
+IPREFWEB=https://www.blinky-lite.se
+NODEREDPORT=60440
 HTMLSTATICDIR=html-static/
 NODE_RED_TITLE=node-red
 ENABLE_NODERED_EDITOR=1
