@@ -135,7 +135,7 @@
     {
         "id": "e865fc91.88a2a",
         "type": "websocket-listener",
-        "path": "/weather/websocket",
+        "path": "/websocket",
         "wholemsg": "false"
     },
     {
@@ -507,12 +507,12 @@
         "id": "e2242fbb.bffa4",
         "type": "http in",
         "z": "7cbe116050851432",
-        "name": "/weather",
-        "url": "/weather",
+        "name": "/",
+        "url": "/",
         "method": "get",
         "upload": false,
         "swaggerDoc": "",
-        "x": 160,
+        "x": 150,
         "y": 220,
         "wires": [
             [
@@ -524,10 +524,10 @@
         "id": "e14c805b.d1dae",
         "type": "websocket out",
         "z": "7cbe116050851432",
-        "name": "/weather/websocket",
+        "name": "/websocket",
         "server": "e865fc91.88a2a",
         "client": "",
-        "x": 1280,
+        "x": 1250,
         "y": 800,
         "wires": []
     },
@@ -594,10 +594,10 @@
         "id": "89399675.118c88",
         "type": "websocket in",
         "z": "7cbe116050851432",
-        "name": "/weather/websocket",
+        "name": "/websocket",
         "server": "e865fc91.88a2a",
         "client": "",
-        "x": 170,
+        "x": 140,
         "y": 800,
         "wires": [
             [
